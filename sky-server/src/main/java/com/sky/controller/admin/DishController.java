@@ -24,4 +24,5 @@ public class DishController {
         dishService.save(dishDTO);
         return Result.success();
     }
+
 }
