@@ -9,9 +9,11 @@ import com.sky.context.BaseContext;
 import com.sky.dto.EmployeeDTO;
 import com.sky.dto.EmployeeLoginDTO;
 import com.sky.dto.EmployeePageQueryDTO;
+import com.sky.dto.PasswordEditDTO;
 import com.sky.entity.Employee;
 import com.sky.exception.AccountLockedException;
 import com.sky.exception.AccountNotFoundException;
+import com.sky.exception.PasswordEditFailedException;
 import com.sky.exception.PasswordErrorException;
 import com.sky.mapper.EmployeeMapper;
 import com.sky.result.PageResult;
@@ -30,13 +32,15 @@ public class EmployeeServiceImpl implements EmployeeService {
 
     @Autowired
     private EmployeeMapper employeeMapper;
+
     /**
      * 员工登录
+     *
      * @param employeeLoginDTO
      * @return
-     *
      */
 
+    @Override
     public Employee login(EmployeeLoginDTO employeeLoginDTO) {
         String username = employeeLoginDTO.getUsername();
         String password = employeeLoginDTO.getPassword();
@@ -66,11 +70,13 @@ public class EmployeeServiceImpl implements EmployeeService {
         //3、返回实体对象
         return employee;
     }
-    public void save(EmployeeDTO employeeDTO){
+
+    @Override
+    public void save(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
 
         //对象属性拷贝
-        BeanUtils.copyProperties(employeeDTO,employee);
+        BeanUtils.copyProperties(employeeDTO, employee);
 
         //设置账号的状态，默认正常状态，1表示正常，0表示锁定
         employee.setStatus(StatusConstant.ENABLE);
@@ -90,16 +96,18 @@ public class EmployeeServiceImpl implements EmployeeService {
         employeeMapper.insert(employee);
     }
 
-    public PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO){
-        PageHelper.startPage(employeePageQueryDTO.getPage(),employeePageQueryDTO.getPageSize());
+    @Override
+    public PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO) {
+        PageHelper.startPage(employeePageQueryDTO.getPage(), employeePageQueryDTO.getPageSize());
 
-        Page<Employee>page = employeeMapper.pageQuery(employeePageQueryDTO);
+        Page<Employee> page = employeeMapper.pageQuery(employeePageQueryDTO);
 
-        return new PageResult(page.getTotal(),page.getResult());
+        return new PageResult(page.getTotal(), page.getResult());
 
     }
 
-    public Employee queryById(Long id){
+    @Override
+    public Employee queryById(Long id) {
         Employee employee = employeeMapper.queryById(id);
         employee.setPassword("************");
         return employee;
@@ -116,11 +124,32 @@ public class EmployeeServiceImpl implements EmployeeService {
     @Override
     public void update(EmployeeDTO employeeDTO) {
         Employee employee = new Employee();
-        BeanUtils.copyProperties(employeeDTO,employee);
+        BeanUtils.copyProperties(employeeDTO, employee);
 
 //        employee.setUpdateTime(LocalDateTime.now());
 //        employee.setUpdateUser(BaseContext.getCurrentId());
 
         employeeMapper.update(employee);
+    }
+
+    @Override
+    public void editPassword(PasswordEditDTO passwordEditDTO) {
+        Long id = BaseContext.getCurrentId();
+        String oldPassword = passwordEditDTO.getOldPassword();
+
+
+        Employee employee = employeeMapper.queryById(id);
+        oldPassword = DigestUtils.md5DigestAsHex(oldPassword.getBytes());
+
+        if (!oldPassword.equals(employee.getPassword())) {
+            throw new PasswordEditFailedException(MessageConstant.OLD_PASSWORD_ERROR);
+        }
+
+        String password = passwordEditDTO.getNewPassword();
+        password = DigestUtils.md5DigestAsHex(password.getBytes());
+        employee.setPassword(password);
+        employeeMapper.update(employee);
+
+
     }
 }
