@@ -4,8 +4,10 @@ import com.github.pagehelper.Page;
 import com.sky.annotation.AutoFill;
 import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
+import com.sky.entity.SetmealDish;
 import com.sky.enumeration.OperationType;
 import com.sky.vo.DishVO;
+import io.swagger.models.auth.In;
 import org.apache.ibatis.annotations.*;
 
 import java.util.List;
@@ -45,4 +47,6 @@ public interface DishMapper {
 
     @Select("select * from dish where category_id = #{categoryId}")
     List<Dish> getByCategoryId(Long categoryId);
+
+    Long getStatusByDishIds(List<Long> ids);
 }
