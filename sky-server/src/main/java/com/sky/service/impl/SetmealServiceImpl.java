@@ -3,6 +3,7 @@ package com.sky.service.impl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
+import com.sky.constant.StatusConstant;
 import com.sky.dto.SetmealDTO;
 import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.entity.Setmeal;
@@ -45,7 +46,7 @@ public class SetmealServiceImpl implements SetmealService {
         List<SetmealDish> setmealDishes = setmealDTO.getSetmealDishes();
         List<Long> list = new ArrayList<>();//存放dishId
 
-        setmeal.setStatus(0);
+        setmeal.setStatus(StatusConstant.DISABLE);
         setmealMapper.insert(setmeal);
 
         Long setmealId = setmeal.getId();
@@ -124,7 +125,7 @@ public class SetmealServiceImpl implements SetmealService {
 
         List<Long> dishIds = setmealDishMapper.getDishIdsBySetmealId(id);
 
-        if(dishMapper.getStatusByDishIds(dishIds) != 0){
+        if (dishMapper.getStatusByDishIds(dishIds) != 0) {
             throw new SetmealEnableFailedException(MessageConstant.SETMEAL_ENABLE_FAILED);
         }
 
