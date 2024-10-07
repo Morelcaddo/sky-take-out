@@ -72,6 +72,7 @@ public class HttpClientUtil {
 
         return result;
     }
+    //paramMap代表的就是请求数据，用map的方式进行了封装
 
     /**
      * 发送POST方式请求
@@ -119,6 +120,7 @@ public class HttpClientUtil {
 
         return resultString;
     }
+    //paramMap代表的就是请求数据，用map的方式进行了封装
 
     /**
      * 发送POST方式请求

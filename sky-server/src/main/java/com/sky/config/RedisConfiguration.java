@@ -20,12 +20,12 @@ public class RedisConfiguration {
 
         //设置Redis key的序列化器
         redisTemplate.setKeySerializer(new StringRedisSerializer());
-        //设置Redis Value的序列化器
-        redisTemplate.setValueSerializer(new StringRedisSerializer());
-        //设置Redis HashKey的序列化器
-        redisTemplate.setHashKeySerializer(new StringRedisSerializer());
-        //设置Redis HashValue的序列化器
-        redisTemplate.setHashValueSerializer(new StringRedisSerializer());
+//        //设置Redis Value的序列化器
+//        redisTemplate.setValueSerializer(new StringRedisSerializer());
+//        //设置Redis HashKey的序列化器
+//        redisTemplate.setHashKeySerializer(new StringRedisSerializer());
+//        //设置Redis HashValue的序列化器
+//        redisTemplate.setHashValueSerializer(new StringRedisSerializer());
 
         return redisTemplate;
     }
