@@ -7,7 +7,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 @Service
-public class ShopServiceImp implements ShopService {
+public class ShopServiceImpl implements ShopService {
 
     @Autowired
     private RedisTemplate redisTemplate;

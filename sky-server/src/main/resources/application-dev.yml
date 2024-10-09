@@ -15,3 +15,6 @@ sky:
     access-key-id: LTAI5tNQHEMByhMsFHVE4MV4
     access-key-secret: NdufBYoBcZUy4hjjrcNQvW4TjZkHG8
     bucket-name: web-project-qxp
+  wechat:
+    appid: wxd8207f02c0cfc238
+    secret: 831583d9912f08beca218105b6dfddb7
