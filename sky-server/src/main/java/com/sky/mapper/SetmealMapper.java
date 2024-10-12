@@ -43,7 +43,8 @@ public interface SetmealMapper {
     void startOrStopStatus(Integer status, Long id);
 
 
-
-
     Long inspectStatus(List<String> ids);
+
+    @Select("select * from setmeal where category_id = #{categoryId}")
+    List<Setmeal>getByCategoryId(Long categoryId);
 }

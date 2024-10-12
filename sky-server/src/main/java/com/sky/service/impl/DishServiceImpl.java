@@ -132,11 +132,27 @@ public class DishServiceImpl implements DishService {
 
     @Override
     public void setStatus(Integer status, Integer id) {
-        dishMapper.setStatus(status,id);
+        dishMapper.setStatus(status, id);
     }
 
     @Override
+    @Transactional
     public List<Dish> getByCategoryId(Long categoryId) {
         return dishMapper.getByCategoryId(categoryId);
+    }
+
+    @Override
+    @Transactional
+    public List<DishVO> getByCategoryIdWithFlavor(Long categoryId) {
+        List<DishVO> list = new ArrayList<>();
+        List<Dish> dishes = dishMapper.getByCategoryId(categoryId);
+        dishes.forEach(dish -> {
+            DishVO dishVO = new DishVO();
+            BeanUtils.copyProperties(dish, dishVO);
+            List<DishFlavor> dishFlavorList = dishFlavorMapper.getByDishId(dish.getId());
+            dishVO.setFlavors(dishFlavorList);
+            list.add(dishVO);
+        });
+        return list;
     }
 }
