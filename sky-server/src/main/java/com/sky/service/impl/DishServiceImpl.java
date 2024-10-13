@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.message.Message;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,6 +38,8 @@ public class DishServiceImpl implements DishService {
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @Override
     @Transactional
@@ -144,15 +147,26 @@ public class DishServiceImpl implements DishService {
     @Override
     @Transactional
     public List<DishVO> getByCategoryIdWithFlavor(Long categoryId) {
-        List<DishVO> list = new ArrayList<>();
-        List<Dish> dishes = dishMapper.getByCategoryId(categoryId);
-        dishes.forEach(dish -> {
-            DishVO dishVO = new DishVO();
-            BeanUtils.copyProperties(dish, dishVO);
-            List<DishFlavor> dishFlavorList = dishFlavorMapper.getByDishId(dish.getId());
-            dishVO.setFlavors(dishFlavorList);
-            list.add(dishVO);
-        });
-        return list;
+        //构造redis中的key
+        String key = "dish_" + categoryId.toString();
+        //查询redis中是否包含某个菜品
+        List<DishVO> list = (List<DishVO>) redisTemplate.opsForValue().get(key);
+        if (list != null && !list.isEmpty()) {
+            return list;
+        } else {
+            list = new ArrayList<>();
+            List<Dish> dishes = dishMapper.getByCategoryId(categoryId);
+            for (Dish dish : dishes) {
+                DishVO dishVO = new DishVO();
+                BeanUtils.copyProperties(dish, dishVO);
+                List<DishFlavor> dishFlavorList = dishFlavorMapper.getByDishId(dish.getId());
+                dishVO.setFlavors(dishFlavorList);
+                list.add(dishVO);
+            }
+            redisTemplate.opsForValue().set(key, list);
+            return list;
+        }
+
+
     }
 }
