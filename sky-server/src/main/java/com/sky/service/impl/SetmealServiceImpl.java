@@ -18,6 +18,9 @@ import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,6 +82,7 @@ public class SetmealServiceImpl implements SetmealService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "setmealCathe:*", allEntries = true)
     public void update(SetmealDTO setmealDTO) {
         Setmeal setmeal = new Setmeal();
         BeanUtils.copyProperties(setmealDTO, setmeal);
@@ -122,6 +126,7 @@ public class SetmealServiceImpl implements SetmealService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = "setmealCathe:*", allEntries = true)
     public void startOrStopStatus(Integer status, Long id) {
 
         List<Long> dishIds = setmealDishMapper.getDishIdsBySetmealId(id);
@@ -135,11 +140,13 @@ public class SetmealServiceImpl implements SetmealService {
     }
 
     @Override
+    @Cacheable(cacheNames = "setmealCathe:categoryCathe", key = "#categoryId")
     public List<Setmeal> getByCategoryId(Long categoryId) {
         return setmealMapper.getByCategoryId(categoryId);
     }
 
     @Override
+    @Cacheable(cacheNames = "setmealCathe:dishCathe", key = "#id")
     public List<DishItemVO> getDishesById(Long id) {
         return setmealDishMapper.getDishesBySetmealId(id);
     }

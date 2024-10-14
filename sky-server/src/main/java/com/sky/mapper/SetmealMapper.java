@@ -39,12 +39,11 @@ public interface SetmealMapper {
     void deleteByIds(List<String> ids);
 
     @Update("update setmeal set status = #{status} where id = #{id}")
-    @AutoFill(OperationType.UPDATE)
     void startOrStopStatus(Integer status, Long id);
 
 
     Long inspectStatus(List<String> ids);
 
-    @Select("select * from setmeal where category_id = #{categoryId}")
+    @Select("select * from setmeal where category_id = #{categoryId} and status = 1")
     List<Setmeal>getByCategoryId(Long categoryId);
 }
