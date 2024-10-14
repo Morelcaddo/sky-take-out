@@ -42,7 +42,7 @@ public interface CategoryService {
 
     /**
      * 根据类型查询分类
-     * @param type
+     * @param
      * @return
      */
     List<Category> list();
