@@ -23,13 +23,10 @@ public class DishController {
 
     @Autowired
     private DishService dishService;
-    @Autowired
-    private RedisTemplate redisTemplate;
 
     @PostMapping
     @ApiOperation("新增菜品")
     public Result<String> save(@RequestBody DishDTO dishDTO) {
-        //cleanCathe("dish_*");
         dishService.save(dishDTO);
         return Result.success();
     }
@@ -43,7 +40,6 @@ public class DishController {
     @DeleteMapping
     @ApiOperation("菜品删除")
     public Result<String> delete(String ids) {
-        //cleanCathe("dish_*");
         dishService.delete(ids);
         return Result.success();
     }
@@ -57,7 +53,6 @@ public class DishController {
     @PutMapping
     @ApiOperation("根据id修改菜品")
     public Result<String> update(@RequestBody DishDTO dishDTO) {
-        cleanCathe("dish_" + dishDTO.getCategoryId().toString());
         dishService.updateWithFlavor(dishDTO);
         return Result.success();
 
@@ -66,7 +61,6 @@ public class DishController {
     @PostMapping("/status/{status}")
     @ApiOperation("菜品起售，停售")
     public Result<String> setStatus(@PathVariable Integer status, Integer id) {
-        cleanCathe("dish_*");
         dishService.setStatus(status, id);
         return Result.success();
     }
@@ -77,13 +71,5 @@ public class DishController {
         return Result.success(dishService.getByCategoryId(categoryId));
 
     }
-
-    private void cleanCathe(String pattern) {
-        Set keys = redisTemplate.keys(pattern);
-        if (keys != null) {
-            redisTemplate.delete(keys);
-        }
-    }
-
 
 }

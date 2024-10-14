@@ -19,6 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.logging.log4j.message.Message;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +34,7 @@ import java.util.function.Consumer;
 
 @Service
 @Slf4j
+@CacheConfig(cacheNames = "dishCathe")
 public class DishServiceImpl implements DishService {
 
     @Autowired
@@ -38,8 +43,6 @@ public class DishServiceImpl implements DishService {
     private DishFlavorMapper dishFlavorMapper;
     @Autowired
     private SetmealDishMapper setmealDishMapper;
-    @Autowired
-    private RedisTemplate redisTemplate;
 
     @Override
     @Transactional
@@ -58,8 +61,6 @@ public class DishServiceImpl implements DishService {
             }
             dishFlavorMapper.insertBatch(list);
         }
-
-
     }
 
     @Override
@@ -117,6 +118,7 @@ public class DishServiceImpl implements DishService {
 
     @Override
     @Transactional
+    @CacheEvict(key = "#dishDTO.categoryId")
     public void updateWithFlavor(DishDTO dishDTO) {
         Dish dish = new Dish();
         BeanUtils.copyProperties(dishDTO, dish);
@@ -134,6 +136,7 @@ public class DishServiceImpl implements DishService {
     }
 
     @Override
+    @CacheEvict(allEntries = true)
     public void setStatus(Integer status, Integer id) {
         dishMapper.setStatus(status, id);
     }
@@ -146,27 +149,17 @@ public class DishServiceImpl implements DishService {
 
     @Override
     @Transactional
+    @Cacheable(key = "#categoryId")
     public List<DishVO> getByCategoryIdWithFlavor(Long categoryId) {
-        //构造redis中的key
-        String key = "dish_" + categoryId.toString();
-        //查询redis中是否包含某个菜品
-        List<DishVO> list = (List<DishVO>) redisTemplate.opsForValue().get(key);
-        if (list != null && !list.isEmpty()) {
-            return list;
-        } else {
-            list = new ArrayList<>();
-            List<Dish> dishes = dishMapper.getByCategoryId(categoryId);
-            for (Dish dish : dishes) {
-                DishVO dishVO = new DishVO();
-                BeanUtils.copyProperties(dish, dishVO);
-                List<DishFlavor> dishFlavorList = dishFlavorMapper.getByDishId(dish.getId());
-                dishVO.setFlavors(dishFlavorList);
-                list.add(dishVO);
-            }
-            redisTemplate.opsForValue().set(key, list);
-            return list;
+        List<DishVO> list = new ArrayList<>();
+        List<Dish> dishes = dishMapper.getByCategoryId(categoryId);
+        for (Dish dish : dishes) {
+            DishVO dishVO = new DishVO();
+            BeanUtils.copyProperties(dish, dishVO);
+            List<DishFlavor> dishFlavorList = dishFlavorMapper.getByDishId(dish.getId());
+            dishVO.setFlavors(dishFlavorList);
+            list.add(dishVO);
         }
-
-
+        return list;
     }
 }
