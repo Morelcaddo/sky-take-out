@@ -1,7 +1,11 @@
 package com.sky.service.impl;
 
+import com.github.pagehelper.Page;
+import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
+import com.sky.dto.OrdersPageQueryDTO;
+import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
 import com.sky.entity.AddressBook;
 import com.sky.entity.OrderDetail;
@@ -13,20 +17,23 @@ import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrdersMapper;
 import com.sky.mapper.ShoppingCartMapper;
-import com.sky.result.Result;
+import com.sky.result.PageResult;
 import com.sky.service.OrderService;
+import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderSubmitVO;
+import com.sky.vo.OrderVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.crypto.ShortBufferException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     @Autowired
@@ -63,6 +70,7 @@ public class OrderServiceImpl implements OrderService {
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
         orders.setUserId(userId);
+
         ordersMapper.insert(orders);
 
         List<OrderDetail> orderDetails = new ArrayList<>();
@@ -87,5 +95,51 @@ public class OrderServiceImpl implements OrderService {
                 .orderNumber(orders.getNumber())
                 .orderAmount(orders.getAmount())
                 .build();
+    }
+
+    @Override
+    public OrderPaymentVO payment(OrdersPaymentDTO ordersPaymentDTO) {
+        OrderPaymentVO orderPaymentVO = new OrderPaymentVO();
+        orderPaymentVO.setTimeStamp(String.valueOf(System.currentTimeMillis()));
+        Orders orders = new Orders();
+        orders.setNumber(ordersPaymentDTO.getOrderNumber());
+        orders.setPayStatus(Orders.PAID);
+        orders.setCheckoutTime(LocalDateTime.now());
+        orders.setPayMethod(ordersPaymentDTO.getPayMethod());
+        orders.setStatus(Orders.TO_BE_CONFIRMED);
+        ordersMapper.update(orders);
+        return orderPaymentVO;
+    }
+
+    @Override
+    @Transactional
+    public PageResult historyOrders(OrdersPageQueryDTO ordersPageQueryDTO) {
+        //获取用户id
+        Long userId = BaseContext.getCurrentId();
+
+        Orders condition = new Orders();
+        condition.setId(userId);
+        condition.setStatus(ordersPageQueryDTO.getStatus());
+        //获取用户订单数据
+        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+        List<Orders> ordersList = ordersMapper.query(condition);
+        Page<Orders> p = (Page<Orders>) ordersList;
+        List<OrderVO> result = new ArrayList<>();
+
+        ordersList = p.getResult();
+
+        //获取每条订单的订单详情数据
+        for (Orders order : ordersList) {
+            List<OrderDetail> orderDetails = orderDetailMapper.queryByOrderId(order.getId());
+            OrderVO orderVO = new OrderVO();
+            BeanUtils.copyProperties(order, orderVO);
+            orderVO.setOrderDetailList(orderDetails);
+            result.add(orderVO);
+        }
+
+        log.info(result.toString());
+
+
+        return new PageResult(p.getTotal(), result);
     }
 }
