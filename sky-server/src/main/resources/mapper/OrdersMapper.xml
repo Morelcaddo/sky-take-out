@@ -39,9 +39,12 @@
             <if test="deliveryTime != null">delivery_time = #{deliveryTime},</if>
             <if test="packAmount != null">pack_amount = #{packAmount},</if>
             <if test="tablewareNumber != null">tableware_number = #{tablewareNumber},</if>
-            <if test="tablewareStatus != null">tablewareStatus = #{tablewareStatus},</if>
+            <if test="tablewareStatus != null">tableware_status = #{tablewareStatus},</if>
         </set>
-        where number = #{number}
+        <where>
+            <if test="id != null">and id = #{id}</if>
+            <if test="number != null">and number = #{number}</if>
+        </where>
     </update>
 
     <select id="query" resultType="com.sky.entity.Orders">
@@ -49,9 +52,11 @@
         <where>
             <if test="userId != null">and user_id = #{userId}</if>
             <if test="status != null">and status = #{status}</if>
+            <if test="phone != null">and phone = #{phone}</if>
+            <if test="number != null">and number = #{number}</if>
+            <if test="beginTime != null">and order_time >= #{beginTime}</if>
+            <if test="endTime != null">and #{endTime} >= order_time</if>
         </where>
-
     </select>
-
 
 </mapper>

@@ -5,11 +5,14 @@ import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
+
 import java.util.List;
 
 @Mapper
 public interface ShoppingCartMapper {
     void insert(ShoppingCart shoppingCart);
+
+    void insertBatch(List<ShoppingCart> list);
 
     List<ShoppingCart> list(ShoppingCart shoppingCart);
 

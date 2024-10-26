@@ -28,4 +28,10 @@ public class UserController {
     public Result<UserLoginVO> login(@RequestBody UserLoginDTO userLoginDTO) {
         return Result.success(userService.login(userLoginDTO));
     }
+
+    @PostMapping("/logout")
+    @ApiOperation("微信用户登出")
+    public Result<String> logout() {
+        return Result.success();
+    }
 }

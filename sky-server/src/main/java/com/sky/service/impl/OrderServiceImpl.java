@@ -31,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -116,17 +117,15 @@ public class OrderServiceImpl implements OrderService {
     public PageResult historyOrders(OrdersPageQueryDTO ordersPageQueryDTO) {
         //获取用户id
         Long userId = BaseContext.getCurrentId();
+        ordersPageQueryDTO.setUserId(userId);
 
-        Orders condition = new Orders();
-        condition.setId(userId);
-        condition.setStatus(ordersPageQueryDTO.getStatus());
         //获取用户订单数据
         PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
-        List<Orders> ordersList = ordersMapper.query(condition);
-        Page<Orders> p = (Page<Orders>) ordersList;
+        Page<Orders> p = ordersMapper.query(ordersPageQueryDTO);
+        ;
         List<OrderVO> result = new ArrayList<>();
 
-        ordersList = p.getResult();
+        List<Orders> ordersList = p.getResult();
 
         //获取每条订单的订单详情数据
         for (Orders order : ordersList) {
@@ -141,5 +140,76 @@ public class OrderServiceImpl implements OrderService {
 
 
         return new PageResult(p.getTotal(), result);
+    }
+
+    @Override
+    @Transactional
+    public OrderVO orderDetail(Long id) {
+        Orders order = ordersMapper.getById(id);
+        OrderVO result = new OrderVO();
+        BeanUtils.copyProperties(order, result);
+        result.setOrderDetailList(orderDetailMapper.queryByOrderId(id));
+        return result;
+    }
+
+    @Override
+    public void cancel(Long id) {
+        Orders orders = ordersMapper.getById(id);
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelTime(LocalDateTime.now());
+        orders.setPayStatus(Orders.REFUND);
+        log.info(orders.toString());
+        ordersMapper.update(orders);
+    }
+
+    @Override
+    public void repetition(Long id) {
+        Long userId = BaseContext.getCurrentId();
+        List<OrderDetail> orderDetails = orderDetailMapper.queryByOrderId(id);
+        List<ShoppingCart> shoppingCarts = new ArrayList<>();
+        for (OrderDetail orderDetail : orderDetails) {
+            ShoppingCart cart = new ShoppingCart();
+            BeanUtils.copyProperties(orderDetail, cart);
+            cart.setUserId(userId);
+            cart.setCreateTime(LocalDateTime.now());
+            log.info(cart.toString());
+            shoppingCarts.add(cart);
+        }
+        shoppingCartMapper.insertBatch(shoppingCarts);
+    }
+
+    @Override
+    @Transactional
+    public PageResult conditionSearch(OrdersPageQueryDTO ordersPageQueryDTO) {
+
+        PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
+        Page<Orders> p = ordersMapper.query(ordersPageQueryDTO);
+
+        List<Orders> orders = p.getResult();
+
+        List<OrderVO> result = new ArrayList<>();
+        for (Orders order : orders) {
+            OrderVO orderVO = new OrderVO();
+            BeanUtils.copyProperties(order, orderVO);
+            orderVO.setOrderDishes(getOrderDishesStr(order));
+            result.add(orderVO);
+        }
+
+
+        return new PageResult(p.getTotal(), result);
+    }
+
+
+    private String getOrderDishesStr(Orders orders) {
+        // 查询订单菜品详情信息（订单中的菜品和数量）
+        List<OrderDetail> orderDetailList = orderDetailMapper.queryByOrderId(orders.getId());
+
+        // 将每一条订单菜品信息拼接为字符串（格式：宫保鸡丁*3；）
+        List<String> orderDishList = orderDetailList.stream().map(x -> {
+            return x.getName() + "*" + x.getNumber() + ";";
+        }).collect(Collectors.toList());
+
+        // 将该订单对应的所有菜品信息拼接在一起
+        return String.join("", orderDishList);
     }
 }
