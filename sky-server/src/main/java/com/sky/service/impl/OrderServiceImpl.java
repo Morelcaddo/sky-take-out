@@ -122,7 +122,6 @@ public class OrderServiceImpl implements OrderService {
         //获取用户订单数据
         PageHelper.startPage(ordersPageQueryDTO.getPage(), ordersPageQueryDTO.getPageSize());
         Page<Orders> p = ordersMapper.query(ordersPageQueryDTO);
-        ;
         List<OrderVO> result = new ArrayList<>();
 
         List<Orders> ordersList = p.getResult();
@@ -205,9 +204,7 @@ public class OrderServiceImpl implements OrderService {
         List<OrderDetail> orderDetailList = orderDetailMapper.queryByOrderId(orders.getId());
 
         // 将每一条订单菜品信息拼接为字符串（格式：宫保鸡丁*3；）
-        List<String> orderDishList = orderDetailList.stream().map(x -> {
-            return x.getName() + "*" + x.getNumber() + ";";
-        }).collect(Collectors.toList());
+        List<String> orderDishList = orderDetailList.stream().map(x -> x.getName() + "*" + x.getNumber() + ";").collect(Collectors.toList());
 
         // 将该订单对应的所有菜品信息拼接在一起
         return String.join("", orderDishList);
