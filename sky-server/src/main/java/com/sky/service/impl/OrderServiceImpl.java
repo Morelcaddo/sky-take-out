@@ -4,9 +4,7 @@ import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersPageQueryDTO;
-import com.sky.dto.OrdersPaymentDTO;
-import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.*;
 import com.sky.entity.AddressBook;
 import com.sky.entity.OrderDetail;
 import com.sky.entity.Orders;
@@ -20,6 +18,7 @@ import com.sky.mapper.ShoppingCartMapper;
 import com.sky.result.PageResult;
 import com.sky.service.OrderService;
 import com.sky.vo.OrderPaymentVO;
+import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +48,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderSubmitVO submit(OrdersSubmitDTO ordersSubmitDTO) {
+        log.info(ordersSubmitDTO.toString());
         //处理业务异常（地址薄为空，购物车数据为空）
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
         if (addressBook == null) {
@@ -208,5 +208,55 @@ public class OrderServiceImpl implements OrderService {
 
         // 将该订单对应的所有菜品信息拼接在一起
         return String.join("", orderDishList);
+    }
+
+    @Override
+    public OrderStatisticsVO statistics() {
+        OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();
+        orderStatisticsVO.setConfirmed(ordersMapper.statistics(Orders.CONFIRMED));
+        orderStatisticsVO.setToBeConfirmed(ordersMapper.statistics(Orders.TO_BE_CONFIRMED));
+        orderStatisticsVO.setDeliveryInProgress(ordersMapper.statistics(Orders.DELIVERY_IN_PROGRESS));
+        return orderStatisticsVO;
+    }
+
+    @Override
+    public void delivery(Long id) {
+        Orders orders = new Orders();
+        orders.setId(id);
+        orders.setStatus(Orders.DELIVERY_IN_PROGRESS);
+        ordersMapper.update(orders);
+    }
+
+    @Override
+    public void confirm(OrdersConfirmDTO ordersConfirmDTO) {
+        ordersConfirmDTO.setStatus(Orders.CONFIRMED);
+        Orders orders = new Orders();
+        BeanUtils.copyProperties(ordersConfirmDTO, orders);
+        ordersMapper.update(orders);
+    }
+
+    @Override
+    public void rejection(OrdersRejectionDTO ordersRejectionDTO) {
+        Orders order = new Orders();
+        BeanUtils.copyProperties(ordersRejectionDTO, order);
+        order.setStatus(Orders.CANCELLED);
+        ordersMapper.update(order);
+    }
+
+    @Override
+    public void complete(Long id) {
+        Orders order = new Orders();
+        order.setId(id);
+        order.setStatus(Orders.COMPLETED);
+        order.setDeliveryTime(LocalDateTime.now());
+        ordersMapper.update(order);
+    }
+
+    @Override
+    public void cancelAdmin(OrdersCancelDTO ordersCancelDTO) {
+        Orders order = new Orders();
+        BeanUtils.copyProperties(ordersCancelDTO, order);
+        order.setStatus(Orders.CANCELLED);
+        ordersMapper.update(order);
     }
 }

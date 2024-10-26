@@ -52,11 +52,12 @@
         <where>
             <if test="userId != null">and user_id = #{userId}</if>
             <if test="status != null">and status = #{status}</if>
-            <if test="phone != null">and phone = #{phone}</if>
-            <if test="number != null">and number = #{number}</if>
+            <if test="phone != null">and phone like concat('%',#{phone},'%')</if>
+            <if test="number != null">and number like concat('%',#{number},'%')</if>
             <if test="beginTime != null">and order_time >= #{beginTime}</if>
             <if test="endTime != null">and #{endTime} >= order_time</if>
         </where>
+        order by order_time desc
     </select>
 
 </mapper>
