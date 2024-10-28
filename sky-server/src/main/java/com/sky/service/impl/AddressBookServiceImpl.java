@@ -54,6 +54,7 @@ public class AddressBookServiceImpl implements AddressBookService {
      * @param addressBook
      */
     public void update(AddressBook addressBook) {
+        log.info(addressBook.toString());
         addressBookMapper.update(addressBook);
     }
 

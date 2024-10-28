@@ -57,3 +57,9 @@ sky:
   wechat:
       appid: ${sky.wechat.appid}
       secret: ${sky.wechat.secret}
+  baidumap:
+    address: ${sky.baidumap.address}
+    ak: ${sky.baidumap.ak}
+    output: ${sky.baidumap.output}
+    sk: ${sky.baidumap.sk}
+    city: ${sky.baidumap.city}

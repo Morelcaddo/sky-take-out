@@ -15,8 +15,11 @@ import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailMapper;
 import com.sky.mapper.OrdersMapper;
 import com.sky.mapper.ShoppingCartMapper;
+import com.sky.properties.BaiduMapProperties;
 import com.sky.result.PageResult;
 import com.sky.service.OrderService;
+import com.sky.utils.BaiduMapUtil;
+import com.sky.utils.HttpClientUtil;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
@@ -27,15 +30,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class OrderServiceImpl implements OrderService {
 
+    @Autowired
+    private BaiduMapProperties baiduMapProperties;
     @Autowired
     private OrdersMapper ordersMapper;
     @Autowired
@@ -48,6 +56,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional
     public OrderSubmitVO submit(OrdersSubmitDTO ordersSubmitDTO) {
+
         log.info(ordersSubmitDTO.toString());
         //处理业务异常（地址薄为空，购物车数据为空）
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
@@ -61,6 +70,9 @@ public class OrderServiceImpl implements OrderService {
             throw new ShoppingCartBusinessException(MessageConstant.SHOPPING_CART_IS_NULL);
         }
 
+
+
+
         //向订单表插入1条数据
         Orders orders = new Orders();
         BeanUtils.copyProperties(ordersSubmitDTO, orders);
@@ -71,6 +83,8 @@ public class OrderServiceImpl implements OrderService {
         orders.setPhone(addressBook.getPhone());
         orders.setConsignee(addressBook.getConsignee());
         orders.setUserId(userId);
+        orders.setAddress(addressBook.getProvinceName() +
+                addressBook.getCityName() + addressBook.getDetail());
 
         ordersMapper.insert(orders);
 
@@ -258,5 +272,46 @@ public class OrderServiceImpl implements OrderService {
         BeanUtils.copyProperties(ordersCancelDTO, order);
         order.setStatus(Orders.CANCELLED);
         ordersMapper.update(order);
+    }
+
+    private void checkOfRange(String address) {
+        //百度地图请求接口url
+        String url = "https://api.map.baidu.com/geocoding/v3/";
+
+        //构造商家地址坐标的请求数据
+        Map<String, String> paramsMap = new LinkedHashMap<>();
+        paramsMap.put("address", baiduMapProperties.getAddress());
+        paramsMap.put("ak", baiduMapProperties.getAk());
+        paramsMap.put("city", baiduMapProperties.getCity());
+        paramsMap.put("output", baiduMapProperties.getOutput());
+        String sn = null;
+        try {
+            sn = BaiduMapUtil.getSn(paramsMap, baiduMapProperties.getSk());
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+
+        paramsMap.put("sn", sn);
+
+        //向百度地图接口发送请求,获取商家地理位置信息
+        String resultMerchant = HttpClientUtil.doGet(url, paramsMap);
+
+        //修改paramsMap中的地址为用户下单地址
+        paramsMap.remove("address");
+        paramsMap.put("address",address);
+
+        try {
+            sn = BaiduMapUtil.getSn(paramsMap, baiduMapProperties.getSk());
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+
+        paramsMap.remove("sn");
+        paramsMap.put("sn", sn);
+
+        //向百度地图接口发送请求,获取用户下单地理位置信息
+        String resultUser = HttpClientUtil.doGet(url, paramsMap);
+
+
     }
 }
