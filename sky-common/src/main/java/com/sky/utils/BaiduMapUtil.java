@@ -1,25 +1,18 @@
 package com.sky.utils;
 
-import com.sky.properties.BaiduMapProperties;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.util.DigestUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.security.NoSuchAlgorithmException;
-import java.util.LinkedHashMap;
 import java.util.Map;
-import java.net.URLEncoder;
-import java.security.NoSuchAlgorithmException;
 import java.util.Map.Entry;
 
 @Slf4j
 @Component
 public class BaiduMapUtil {
 
-    public static String getSn(Map<String, String> paramsMap, String sk) throws UnsupportedEncodingException {
+    public static String getSn(Map<String, String> paramsMap, String sk, String urlPrefix) throws UnsupportedEncodingException {
 
         // 计算sn跟参数对出现顺序有关，get请求请使用LinkedHashMap保存<key,value>，
         // 该方法根据key的插入顺序排序；post请使用TreeMap保存<key,value>，
@@ -39,12 +32,12 @@ public class BaiduMapUtil {
         // 对paramsStr前面拼接上/geocoder/v2/?，
         // 后面直接拼接yoursk得到/geocoder/v2/?
         // address=%E7%99%BE%E5%BA%A6%E5%A4%A7%E5%8E%A6&output=json&ak=yourakyoursk
-        String wholeStr = "/geocoding/v3/?" + paramsStr + sk;
+        String wholeStr = urlPrefix + paramsStr + sk;
         log.info(wholeStr);
 
         // 对上面wholeStr再作utf8编码
         String tempStr = URLEncoder.encode(wholeStr, "UTF-8");
-
+        log.info(tempStr);
         // 调用下面的MD5方法得到最后的sn签名
         return MD5(tempStr);
     }

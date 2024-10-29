@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 public class BaiduMapProperties {
     private String address;
     private String ak;
-    private String city;
     private String output;
     private String sk;
 }

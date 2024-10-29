@@ -1,5 +1,8 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
@@ -10,6 +13,7 @@ import com.sky.entity.OrderDetail;
 import com.sky.entity.Orders;
 import com.sky.entity.ShoppingCart;
 import com.sky.exception.AddressBookBusinessException;
+import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
 import com.sky.mapper.AddressBookMapper;
 import com.sky.mapper.OrderDetailMapper;
@@ -70,7 +74,9 @@ public class OrderServiceImpl implements OrderService {
             throw new ShoppingCartBusinessException(MessageConstant.SHOPPING_CART_IS_NULL);
         }
 
-
+        //检查配送距离
+        checkOfRange(addressBook.getProvinceName() +
+                addressBook.getCityName() + addressBook.getDetail());
 
 
         //向订单表插入1条数据
@@ -274,6 +280,7 @@ public class OrderServiceImpl implements OrderService {
         ordersMapper.update(order);
     }
 
+
     private void checkOfRange(String address) {
         //百度地图请求接口url
         String url = "https://api.map.baidu.com/geocoding/v3/";
@@ -282,11 +289,10 @@ public class OrderServiceImpl implements OrderService {
         Map<String, String> paramsMap = new LinkedHashMap<>();
         paramsMap.put("address", baiduMapProperties.getAddress());
         paramsMap.put("ak", baiduMapProperties.getAk());
-        paramsMap.put("city", baiduMapProperties.getCity());
         paramsMap.put("output", baiduMapProperties.getOutput());
-        String sn = null;
+        String sn;
         try {
-            sn = BaiduMapUtil.getSn(paramsMap, baiduMapProperties.getSk());
+            sn = BaiduMapUtil.getSn(paramsMap, baiduMapProperties.getSk(), "/geocoding/v3/?");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
@@ -295,23 +301,100 @@ public class OrderServiceImpl implements OrderService {
 
         //向百度地图接口发送请求,获取商家地理位置信息
         String resultMerchant = HttpClientUtil.doGet(url, paramsMap);
+        log.info(resultMerchant);
+
+        //处理商家位置信息的返回结果
+        JSONObject merchantJSONObject = JSONObject.parseObject(resultMerchant);
+
+        if (!merchantJSONObject.getString("status").equals("0")) {
+            throw new OrderBusinessException("商家地址信息解析失败");
+        }
+
+        JSONObject merchantLocation = merchantJSONObject.getJSONObject("result")
+                .getJSONObject("location");
+
+        String latMerchant = merchantLocation.getString("lat");
+        String lngMerchant = merchantLocation.getString("lng");
+        String merchantPoint = latMerchant + "," + lngMerchant;
+
 
         //修改paramsMap中的地址为用户下单地址
-        paramsMap.remove("address");
-        paramsMap.put("address",address);
+        paramsMap.clear();
+        paramsMap.put("address", address);
+        paramsMap.put("ak", baiduMapProperties.getAk());
+        paramsMap.put("output", baiduMapProperties.getOutput());
 
         try {
-            sn = BaiduMapUtil.getSn(paramsMap, baiduMapProperties.getSk());
+            sn = BaiduMapUtil.getSn(paramsMap, baiduMapProperties.getSk(), "/geocoding/v3/?");
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
 
-        paramsMap.remove("sn");
         paramsMap.put("sn", sn);
+
+        log.info(paramsMap.toString());
 
         //向百度地图接口发送请求,获取用户下单地理位置信息
         String resultUser = HttpClientUtil.doGet(url, paramsMap);
+        log.info(resultUser);
 
+
+        //处理用户位置信息返回结果
+        JSONObject userJSONObject = JSONObject.parseObject(resultUser);
+
+        if (!userJSONObject.getString("status").equals("0")) {
+            throw new OrderBusinessException("用户地址信息解析失败");
+        }
+
+        JSONObject userLocation = userJSONObject.getJSONObject("result")
+                .getJSONObject("location");
+
+        String latUser = userLocation.getString("lat");
+        String lngUser = userLocation.getString("lng");
+        String userPoint = latUser + "," + lngUser;
+
+        log.info(userPoint);
+
+        //构造百度地图路劲规划api请求数据
+        paramsMap.clear();
+        paramsMap.put("ak", baiduMapProperties.getAk());
+        paramsMap.put("origin", merchantPoint);
+        paramsMap.put("destination", userPoint);
+        paramsMap.put("output", baiduMapProperties.getOutput());
+        paramsMap.put("steps_info", "0");
+        paramsMap.put("timestamp", String.valueOf(System.currentTimeMillis()));
+        log.info(paramsMap.toString());
+
+
+        try {
+            sn = BaiduMapUtil.getSn(paramsMap, baiduMapProperties.getSk(), "/direction/v2/driving?");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
+
+
+        paramsMap.put("sn", sn);
+
+        url = "https://api.map.baidu.com/direction/v2/driving";
+        String resultRouting = HttpClientUtil.doGet(url, paramsMap);
+
+        log.info(resultRouting);
+
+        //处理路径规划接口的返回结果
+        JSONObject routingJSONObject = JSON.parseObject(resultRouting);
+
+        if (!routingJSONObject.getString("status").equals("0")) {
+            throw new OrderBusinessException("路径规划失败");
+        }
+
+        JSONArray jsonArray = routingJSONObject.getJSONObject("result")
+                .getJSONArray("routes");
+        Integer distance = (Integer) ((JSONObject) jsonArray.get(0)).get("distance");
+
+        if (distance > 5000) {
+            //配送距离超过5000米
+            throw new OrderBusinessException("超出配送范围");
+        }
 
     }
 }
