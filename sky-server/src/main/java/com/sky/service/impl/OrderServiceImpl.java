@@ -28,6 +28,7 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,10 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,6 +54,8 @@ public class OrderServiceImpl implements OrderService {
     private AddressBookMapper addressBookMapper;
     @Autowired
     private ShoppingCartMapper shoppingCartMapper;
+    @Autowired
+    private WebSocketServer webSocketServer;
 
     @Override
     @Transactional
@@ -90,7 +90,8 @@ public class OrderServiceImpl implements OrderService {
         orders.setConsignee(addressBook.getConsignee());
         orders.setUserId(userId);
         orders.setAddress(addressBook.getProvinceName() +
-                addressBook.getCityName() + addressBook.getDetail());
+                addressBook.getCityName() + addressBook.getDistrictName()
+                + addressBook.getDetail());
 
         ordersMapper.insert(orders);
 
@@ -129,6 +130,14 @@ public class OrderServiceImpl implements OrderService {
         orders.setPayMethod(ordersPaymentDTO.getPayMethod());
         orders.setStatus(Orders.TO_BE_CONFIRMED);
         ordersMapper.update(orders);
+
+        //通过WebSocket向客户端浏览器推送消息 type orderId Content
+        Map data = new HashMap();
+        data.put("type", 1);//表示来单提醒,2表示客户催单
+        data.put("orderId", orders.getId());
+        data.put("content", "订单号：" + ordersPaymentDTO.getOrderNumber());
+        String json = JSON.toJSONString(data);
+        webSocketServer.sendToAllClient(json);
         return orderPaymentVO;
     }
 
@@ -270,6 +279,28 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(Orders.COMPLETED);
         order.setDeliveryTime(LocalDateTime.now());
         ordersMapper.update(order);
+    }
+
+    @Override
+    public void reminder(Long id) {
+        Orders order = ordersMapper.getById(id);
+
+        if (order == null) {
+            throw new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
+        }
+
+        Integer status = order.getStatus();
+        if (status == 1 || status == 5 || status == 6 || status == 7) {
+            throw new OrderBusinessException(MessageConstant.ORDER_STATUS_ERROR);
+        }
+
+        Map data = new HashMap();
+        data.put("type", 2);//1表示来单提醒，2表示客户催单
+        data.put("orderId", order.getId());
+        data.put("content", "订单号：" + order.getNumber());
+        webSocketServer.sendToAllClient(JSON.toJSONString(data));
+
+
     }
 
     @Override
