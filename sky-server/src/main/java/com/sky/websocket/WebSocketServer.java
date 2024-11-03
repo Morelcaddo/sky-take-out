@@ -19,7 +19,6 @@ import java.util.Map;
 @Component
 @ServerEndpoint("/ws/{sid}")
 @Slf4j
-
 public class WebSocketServer {
 
     //存放会话对象

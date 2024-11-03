@@ -135,7 +135,15 @@ public class ReportServiceImpl implements ReportService {
         //统计订单总数并计算完成率
         Integer total = ordersMapper.getSum(LocalDateTime.of(begin, LocalTime.MIN),
                 LocalDateTime.of(end, LocalTime.MAX));
-        Double orderCompletionRate = Double.valueOf(finish) / Double.valueOf(total);
+
+        if (total == null) {
+            total = 0;
+        }
+
+        Double orderCompletionRate = (double) 0;
+        if (total != 0) {
+            orderCompletionRate = Double.valueOf(finish) / Double.valueOf(total);
+        }
 
         List<Integer> validOrderCountList = new ArrayList<>();
         List<Integer> orderCountList = new ArrayList<>();

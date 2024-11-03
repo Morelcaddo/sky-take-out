@@ -47,5 +47,8 @@ public interface DishMapper {
     @Select("select * from dish where category_id = #{categoryId} and status = 1")
     List<Dish> getByCategoryId(Long categoryId);
 
+    @Select("select count(*) from dish where status = #{status}")
+    Integer getSumByStatus(Integer status);
+
     Long getStatusByDishIds(List<Long> ids);
 }

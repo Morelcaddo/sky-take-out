@@ -33,5 +33,7 @@ public interface OrdersMapper {
     @Select("select count(*) from orders where order_time >= #{begin} and order_time <= #{end}")
     Integer getSum(LocalDateTime begin, LocalDateTime end);
 
+    @Select("select count(*) from orders")
+    Integer getAll();
 
 }
