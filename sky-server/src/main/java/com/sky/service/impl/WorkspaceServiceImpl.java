@@ -36,11 +36,8 @@ public class WorkspaceServiceImpl implements WorkspaceService {
     public BusinessDataVO businessData() {
         //获取新增用户数
         LocalDate now = LocalDate.now();
-        LocalDate before = now.minusDays(1);
         Long newUsers = userMapper.getUserData(LocalDateTime.of(now, LocalTime.MIN),
-                LocalDateTime.of(now, LocalTime.MAX)) - userMapper.getUserData
-                (LocalDateTime.of(before, LocalTime.MIN)
-                        , LocalDateTime.of(before, LocalTime.MAX));
+                LocalDateTime.of(now, LocalTime.MAX));
 
         //获取订单完成率
 

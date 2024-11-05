@@ -43,7 +43,8 @@ public class WorkspaceController {
 
     @GetMapping("/overviewOrders")
     @ApiOperation("查询订单管理数据")
-    public Result<OrderOverViewVO> overviewOrders(){
+    public Result<OrderOverViewVO> overviewOrders() {
+
         return Result.success(workspaceService.overviewOrders());
     }
 }
